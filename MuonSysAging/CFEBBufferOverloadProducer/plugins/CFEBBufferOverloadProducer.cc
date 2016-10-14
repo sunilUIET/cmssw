@@ -164,7 +164,7 @@ CFEBBufferOverloadProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
    iEvent.getByToken( rh_token, recHits );
 
    // Create empty collection of rechits  
-   std::auto_ptr<CSCRecHit2DCollection> oc( new CSCRecHit2DCollection );
+   std::unique_ptr<CSCRecHit2DCollection> oc( new CSCRecHit2DCollection );
 
    // Vector to store rechit within layer
    std::vector<CSCRecHit2D> hitsInLayer;
@@ -230,7 +230,7 @@ CFEBBufferOverloadProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
    }
 
    //std::cout << "Done processing overloaded buffers" << std::endl;
-   iEvent.put(oc);
+   iEvent.put(std::move(oc));
 }
 
 bool
