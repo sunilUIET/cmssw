@@ -1,3 +1,0 @@
-<use name="CondFormats/MuonSystemAging"/>
-<use name="CondCore/DBOutputService"/>
-<flags EDM_PLUGIN="1"/>
