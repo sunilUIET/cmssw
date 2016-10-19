@@ -114,16 +114,8 @@ RPCChamberMasker::~RPCChamberMasker()
 void
 RPCChamberMasker::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  std::cout<<"Looking for RPC chambers"<<std::endl;
   using namespace edm;
   std::unique_ptr<RPCDigiCollection> filteredDigis(new RPCDigiCollection());
-/*  edm::ESHandle<MuonSystemAging> mcData;
-  iSetup.get<MuonSystemAgingRcd>().get(mcData); 
-  const MuonSystemAging* myMC=mcData.product();
-  std::vector<int> mcV = myMC->m_RPCchambers;
-  std::cout<<"chambers = "<<mcV.size()<<std::endl;
-  for(unsigned int i = 0; i < mcV.size();++i)std::cout<<"chambers number = "<<mcV.at(i)<<std::endl;
-*/
   if (!digiTag_.label().empty())
     {
       edm::Handle<RPCDigiCollection> rpcDigis;
@@ -134,25 +126,16 @@ RPCChamberMasker::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
       
       for (; rpcLayerIdIt != rpcLayerIdEnd; ++rpcLayerIdIt)
 	  {
-      //    std::cout<<"==========================================="<<std::endl;
-      //    std::cout<<"Digi"<<std::endl;
-      //    std::cout<<"DetId\t"<<((*rpcLayerIdIt).first).chamberId().rawId()<<'\t'<<((*rpcLayerIdIt).first)<<std::endl;
-      //   std::cout<<"DetId\t"<<((*rpcLayerIdIt).first).rawId()<<'\t'<<((*rpcLayerIdIt).first)<<std::endl;
-          
-          //int id = ((*rpcLayerIdIt).first).chamberId().rawId();
           int id = ((*rpcLayerIdIt).first).rawId();
           
           if(std::find(m_maskedRPCIDs.begin(),m_maskedRPCIDs.end(),id) == m_maskedRPCIDs.end()){
               filteredDigis->put((*rpcLayerIdIt).second,(*rpcLayerIdIt).first);
-              //std::cout<<"Passed"<<" size "<<m_maskedRPCIDs.size()<<std::endl;
           }
-	      //else {std::cout<<"Filtered"<<std::endl;}
       }
     } 
 
  
       iEvent.put(std::move(filteredDigis));
-    //  std::cout<<"digis stored = "<<std::endl;
 }
 
 // ------------ method called once each job just before starting event loop  ------------

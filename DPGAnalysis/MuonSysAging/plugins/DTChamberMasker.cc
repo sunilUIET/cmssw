@@ -151,14 +151,6 @@ DTChamberMasker::~DTChamberMasker()
 void
 DTChamberMasker::produce(edm::Event& event, const edm::EventSetup& iSetup)
 {
- std::cout<<"Looking for DT chambers"<<std::endl;
-  // CB Fix a few things:
-  // add code to mask DDU trigger primitives as well
-  // add possibility to put hit efficiency at a different than 100 or 0
-  // deal better with SEC 13 and 14 for trigger
-  // change enabled object maps from ID to rawId ?
-  // add FillDescriptors
-  // write loops better
   
  
   std::unique_ptr<DTDigiCollection> filteredDigis(new DTDigiCollection());
@@ -170,14 +162,6 @@ DTChamberMasker::produce(edm::Event& event, const edm::EventSetup& iSetup)
   std::vector<L1MuDTChambPhDigi> filteredPhTrigPrims;
   std::vector<L1MuDTChambThDigi> filteredThTrigPrims;
 
-/*  
-  edm::ESHandle<MuonSystemAging> mcData;
-  iSetup.get<MuonSystemAgingRcd>().get(mcData);
-  const MuonSystemAging* myMC=mcData.product();
-  std::vector<std::string> mcV = myMC->m_DTchambers;
-  std::cout<<"chambers = "<<mcV.size()<<std::endl;
-  for(unsigned int i = 0; i < mcV.size();++i)std::cout<<"chambers number = "<<mcV.at(i)<<std::endl;
-*/  
 
   if( !digiTag_.label().empty())
     {
@@ -277,10 +261,7 @@ DTChamberMasker::beginRun(edm::Run const& run, edm::EventSetup const& iSetup)
 
       createMaskedChamberCollection(dtGeom);
 
-      std::cout << "[DTChamberMasker::beginRun]: List of enabled chambers: " << std::endl;
 
-      for ( const DTChamberId chId : m_enabledCh)
-	std::cout << "[DTChamberMasker::beginRun]:" << chId << std::endl;
 
     }
 

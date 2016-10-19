@@ -150,7 +150,6 @@ CFEBBufferOverloadProducer::~CFEBBufferOverloadProducer()
 void
 CFEBBufferOverloadProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  std::cout<<"Looking for CSC chambers"<<std::endl;
    using namespace edm;
    // Get the CSC Geometry :
    edm::ESHandle<CSCGeometry> cscGeom;
@@ -170,7 +169,6 @@ CFEBBufferOverloadProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
    // Vector to store rechit within layer
    std::vector<CSCRecHit2D> hitsInLayer;
  
-   //std::cout << "Selecting Overloaded Buffers" << std::endl;
    bool bufferOverloaded[2][4][4][36][5] = {{{{{0}}}}}; //endcap, station, ring, chamber, cfeb
    //bool currChamberOverload = false;
    //std::cout << "First 10 overloaded cfebs" << std::endl;
