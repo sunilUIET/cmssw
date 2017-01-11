@@ -7,16 +7,17 @@
  *      */
 
 #include "CondFormats/Serialization/interface/Serializable.h"
-#include<cmath>
-#include<iostream>
+#include <cmath>
+#include <iostream>
 #include <vector>
-#include <regex>
+#include <map>
+
 class MuonSystemAging {
     public:
     MuonSystemAging();
     ~MuonSystemAging(){}
     std::vector<int>  m_RPCchambers;
-    std::vector<std::string>  m_DTchambers;
+    std::map<unsigned int, float>  m_DTChambEffs;
     double m_CSCineff;
    COND_SERIALIZABLE;
    };
