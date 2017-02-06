@@ -31,7 +31,8 @@ process.mytest = cms.EDAnalyzer("ChamberMasker",
            # Accept lists or regular expression as from:
            # http://www.cplusplus.com/reference/regex/ECMAScript/
            chamberRegEx = cms.vstring([
-            # A chamber by chamber list in format CHAMBER:EFF
+            # A chamber by chamber list in format CHAMBER:EFF (for DT)
+            # A chamber by chamber list in format CHAMBER:TYPE,EFF (for CSC)
             # MB4 of top sectors
             "WH-2_ST4_SEC2:0.","WH-2_ST4_SEC3:0.","WH-2_ST4_SEC4:0.","WH-2_ST4_SEC5:0.","WH-2_ST4_SEC6:0.",
             "WH-1_ST4_SEC2:0.","WH-1_ST4_SEC3:0.","WH-1_ST4_SEC4:0.","WH-1_ST4_SEC5:0.","WH-1_ST4_SEC6:0.",
@@ -50,9 +51,19 @@ process.mytest = cms.EDAnalyzer("ChamberMasker",
             "WH-2_ST2_SEC2:0.","WH-2_ST2_SEC4:0.",
             # more sparse failures
             "WH-2_ST2_SEC8:0.","WH-1_ST1_SEC1:0.","WH-1_ST2_SEC1:0.","WH-1_ST1_SEC4:0.","WH-1_ST3_SEC7:0.",
-            "WH0_ST2_SEC2:0.","WH0_ST3_SEC5:0.","WH0_ST4_SEC12:0.","WH1_ST1_SEC6:0.","WH1_ST1_SEC10:0.","WH1_ST3_SEC3:0."
+            "WH0_ST2_SEC2:0.","WH0_ST3_SEC5:0.","WH0_ST4_SEC12:0.","WH1_ST1_SEC6:0.","WH1_ST1_SEC10:0.","WH1_ST3_SEC3:0.",
             # Or a RegEx setting efficiency  for all chamber to 10%
-            #"(WH-?\\\d_ST\\\d_SEC\\\\d+):0.1"
+            # #"(WH-?\\\d_ST\\\d_SEC\\\\d+):0.1",
+
+            # Set DTs to be fully inefficient
+            "(WH-?\\\d_ST\\\d_SEC\\\\d+):0.0", # FIXME
+
+            # # Set 70% type-2 efficiency on ME-1
+            # "(ME[-]1/\\\d/\\\\d+):2,0.7", # FIXME
+
+            # Set 30% type-0 efficiency on ME- endcap
+            "(ME-\\\d/\\\d/\\\\d+):0,0.3", # FIXME
+
             ])
                                 
 )

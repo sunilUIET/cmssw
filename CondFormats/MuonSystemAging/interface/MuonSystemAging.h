@@ -12,12 +12,15 @@
 #include <vector>
 #include <map>
 
+enum CSCInefficiencyType { CHAMBER=0, STRIPS=1, WIRES=2 };
+
 class MuonSystemAging {
     public:
     MuonSystemAging();
     ~MuonSystemAging(){}
     std::vector<int>  m_RPCchambers;
     std::map<unsigned int, float>  m_DTChambEffs;
+    std::map<unsigned int, std::pair<unsigned int, float> >  m_CSCChambEffs;
     double m_CSCineff;
    COND_SERIALIZABLE;
    };

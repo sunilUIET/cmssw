@@ -82,7 +82,8 @@ private:
 
   // ----------member data ---------------------------
 
-  edm::EDGetTokenT <CSCStripDigiCollection> m_digiToken;
+  edm::EDGetTokenT <CSCStripDigiCollection> m_stripDigiToken;
+  edm::EDGetTokenT <CSCWireDigiCollection> m_wireDigiToken;
   // std::map<CSCChamberId, float> m_ChEffs;  
   
 };
@@ -101,7 +102,8 @@ private:
 //
 CSCChamberMasker::CSCChamberMasker(const edm::ParameterSet& iConfig) 
     :
-  m_digiToken(consumes<CSCStripDigiCollection>(iConfig.getParameter<edm::InputTag>("stripDigiTag")) )
+  m_stripDigiToken(consumes<CSCStripDigiCollection>(iConfig.getParameter<edm::InputTag>("stripDigiTag")) ),
+  m_wireDigiToken(consumes<CSCWireDigiCollection>(iConfig.getParameter<edm::InputTag>("wireDigiTag")) )
 {
 
   produces<CSCStripDigiCollection>("MuonCSCStripDigi");
@@ -134,11 +136,10 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
   std::unique_ptr<CSCStripDigiCollection> filteredStripDigis(new CSCStripDigiCollection());
   std::unique_ptr<CSCWireDigiCollection> filteredWireDigis(new CSCWireDigiCollection());
 
-
-  if(!m_digiToken.isUninitialized())
+  if(!m_stripDigiToken.isUninitialized())
   {
       edm::Handle<CSCStripDigiCollection> cscStripDigis;
-      event.getByToken(m_digiToken, cscStripDigis);
+      event.getByToken(m_stripDigiToken, cscStripDigis);
 
       for (CSCStripDigiCollection::DigiRangeIterator j=cscStripDigis->begin(); j!=cscStripDigis->end(); j++) {
           std::vector<CSCStripDigi>::const_iterator digiItr = (*j).second.first;
@@ -146,10 +147,30 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
           std::cout<<"Det id: " << cscDetId<<std::endl;
           std::vector<CSCStripDigi>::const_iterator last = (*j).second.second;
           for( ; digiItr != last; ++digiItr) {
-              std::cout<<"  Digi: " << (*digiItr) <<std::endl;
+              // std::cout<<"  Strip Digi: " << (*digiItr) <<std::endl;
               filteredStripDigis->insertDigi(cscDetId,*digiItr);
           }
       }
+  }
+
+  if(!m_stripDigiToken.isUninitialized())
+  {
+
+      edm::Handle<CSCWireDigiCollection> cscWireDigis;
+      event.getByToken(m_wireDigiToken, cscWireDigis);
+
+      for (CSCWireDigiCollection::DigiRangeIterator j=cscWireDigis->begin(); j!=cscWireDigis->end(); j++) {
+          std::vector<CSCWireDigi>::const_iterator digiItr = (*j).second.first;
+          CSCDetId const cscDetId=(*j).first;
+          std::cout<<"Det id: " << cscDetId<<std::endl;
+          std::vector<CSCWireDigi>::const_iterator last = (*j).second.second;
+          for( ; digiItr != last; ++digiItr) {
+              // std::cout<<"  Wire Digi: " << (*digiItr) <<std::endl;
+              // FIXME, don't write out any wire digis right now to test the masking
+              // filteredWireDigis->insertDigi(cscDetId,*digiItr);
+          }
+      }
+  }
 
       //     // auto chEffIt = m_ChEffs.find(chId);
 
@@ -157,8 +178,6 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
       //     //     filteredDigis->put((*cscLayerIdIt).second,(*cscLayerIdIt).first);
 
 
-  }
-  
   event.put(std::move(filteredStripDigis), "MuonCSCStripDigi");
   event.put(std::move(filteredWireDigis), "MuonCSCWireDigi");
 

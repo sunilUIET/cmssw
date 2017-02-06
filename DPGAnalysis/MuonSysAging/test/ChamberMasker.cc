@@ -28,6 +28,7 @@
 
 #include "Geometry/Records/interface/MuonGeometryRecord.h"
 #include "Geometry/DTGeometry/interface/DTGeometry.h"
+#include "Geometry/CSCGeometry/interface/CSCGeometry.h"
 
 #include "CondFormats/MuonSystemAging/interface/MuonSystemAging.h"
 #include "CondCore/DBOutputService/interface/PoolDBOutputService.h"
@@ -54,10 +55,12 @@ private:
   virtual void endJob() override;
   
   void createDtAgingMap(edm::ESHandle<DTGeometry> & dtGeom);
+  void createCSCAgingMap(edm::ESHandle<CSCGeometry> & cscGeom);
   
   std::vector<int> m_maskedRPCIDs;
   std::vector<std::string> m_ChamberRegEx;
   std::map<uint32_t, float> m_DTChambEffs;
+  std::map<uint32_t, std::pair<short int, float>> m_CSCChambEffs;
   double m_ineffCSC;      
   
   // ----------member data ---------------------------
@@ -117,6 +120,11 @@ ChamberMasker::beginRun(const edm::Run& iRun, const edm::EventSetup& iSetup)
   iSetup.get<MuonGeometryRecord>().get(dtGeom);
 
   createDtAgingMap(dtGeom);
+
+  edm::ESHandle<CSCGeometry> cscGeom;
+  iSetup.get<MuonGeometryRecord>().get(cscGeom);
+
+  createCSCAgingMap(cscGeom);
   
 }
 
@@ -143,6 +151,57 @@ ChamberMasker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 void 
 ChamberMasker::endJob() 
 {
+}
+
+void
+ChamberMasker::createCSCAgingMap(edm::ESHandle<CSCGeometry> & cscGeom)
+{
+
+    const auto chambers = cscGeom->chambers();
+
+    std::cout << chambers.size() << std::endl;
+
+    for ( const auto *ch : chambers) {
+
+        CSCDetId chId = ch->id();
+
+        std::cout << " chId: " << chId << std::endl;
+
+        std::string chTag = (chId.zendcap() == 1 ? "ME+" : "ME-")
+            + std::to_string(chId.station())
+            + "/" + std::to_string(chId.ring())
+            + "/" + std::to_string(chId.chamber());
+
+        int type = 0;
+        float eff = 1.;
+
+        for (auto & chRegExStr : m_ChamberRegEx) {
+
+            std::string effTag(chRegExStr.substr(chRegExStr.find(":")));
+
+            const std::regex chRegEx(chRegExStr.substr(0,chRegExStr.find(":")));
+            const std::regex predicateRegEx("(\\d*,\\d*\\.\\d*)");
+
+            std::smatch predicate;
+
+            if ( std::regex_search(chTag, chRegEx) && std::regex_search(effTag, predicate, predicateRegEx)) {
+                std::string predicateStr = predicate.str();
+                std::string typeStr = predicateStr.substr(0,predicateStr.find(","));
+                std::string effStr = predicateStr.substr(predicateStr.find(",")+1);
+                type = std::atoi(typeStr.c_str());
+                eff = std::atof(effStr.c_str());
+
+                std::cout << "Setting chamber " << chTag << " to have inefficiency of " << eff << ", type " << type << std::endl;
+            }
+
+        } 
+
+        // Note, layer 0 for chamber specification
+        int rawId = chId.rawIdMaker(chId.endcap(), chId.station(), chId.ring(), chId.chamber(), 0);
+        m_CSCChambEffs[rawId] = std::make_pair(type, eff);
+
+    }
+
 }
 
 void
@@ -179,13 +238,13 @@ ChamberMasker::createDtAgingMap(edm::ESHandle<DTGeometry> & dtGeom)
 	   {
 	     std::string effStr = effMatch.str();
 	     eff = std::atof(effStr.c_str());
+
 	   }
 
        } 
 
      m_DTChambEffs[chId.rawId()] = eff;
 
-     std::cout << chId << " " << eff << std::endl;
          
    }
   
