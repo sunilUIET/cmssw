@@ -61,8 +61,8 @@ process.mytest = cms.EDAnalyzer("ChamberMasker",
             # # Set 70% type-2 efficiency on ME-1
             # "(ME[-]1/\\\d/\\\\d+):2,0.7", # FIXME
 
-            # Set 30% type-0 efficiency on ME- endcap
-            "(ME-\\\d/\\\d/\\\\d+):0,0.3", # FIXME
+            # Set 30% type-1 efficiency on ME- endcap
+            "(ME-\\\d/\\\d/\\\\d+):1,0.3", # FIXME
 
             ])
                                 

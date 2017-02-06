@@ -60,7 +60,7 @@ private:
   std::vector<int> m_maskedRPCIDs;
   std::vector<std::string> m_ChamberRegEx;
   std::map<uint32_t, float> m_DTChambEffs;
-  std::map<uint32_t, std::pair<short int, float>> m_CSCChambEffs;
+  std::map<uint32_t, std::pair<unsigned int, float>> m_CSCChambEffs;
   double m_ineffCSC;      
   
   // ----------member data ---------------------------
@@ -140,6 +140,7 @@ ChamberMasker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    }
 
    muonSystAging->m_DTChambEffs = m_DTChambEffs;
+   muonSystAging->m_CSCChambEffs = m_CSCChambEffs;
 
    muonSystAging->m_CSCineff = m_ineffCSC; 
    edm::Service<cond::service::PoolDBOutputService> poolDbService;

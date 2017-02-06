@@ -12,7 +12,11 @@
 #include <vector>
 #include <map>
 
-enum CSCInefficiencyType { CHAMBER=0, STRIPS=1, WIRES=2 };
+enum CSCInefficiencyType { 
+    EFF_CHAMBER=0, 
+    EFF_STRIPS=1,
+    EFF_WIRES=2 
+};
 
 class MuonSystemAging {
     public:

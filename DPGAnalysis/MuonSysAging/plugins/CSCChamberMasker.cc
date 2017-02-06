@@ -84,7 +84,7 @@ private:
 
   edm::EDGetTokenT <CSCStripDigiCollection> m_stripDigiToken;
   edm::EDGetTokenT <CSCWireDigiCollection> m_wireDigiToken;
-  // std::map<CSCChamberId, float> m_ChEffs;  
+  std::map<CSCDetId, std::pair<unsigned int,float> > m_CSCEffs;  
   
 };
 
@@ -144,11 +144,26 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
       for (CSCStripDigiCollection::DigiRangeIterator j=cscStripDigis->begin(); j!=cscStripDigis->end(); j++) {
           std::vector<CSCStripDigi>::const_iterator digiItr = (*j).second.first;
           CSCDetId const cscDetId=(*j).first;
-          std::cout<<"Det id: " << cscDetId<<std::endl;
+
+          // Since lookups are chamber-centric, make new DetId with layer=0
+          CSCDetId chId = CSCDetId(cscDetId.endcap(), cscDetId.station(), cscDetId.ring(), cscDetId.chamber(), 0);
+          std::cout<<"Det id: " << chId<<std::endl;
+
           std::vector<CSCStripDigi>::const_iterator last = (*j).second.second;
           for( ; digiItr != last; ++digiItr) {
+
+              auto chEffIt = m_CSCEffs.find(chId);
+
               // std::cout<<"  Strip Digi: " << (*digiItr) <<std::endl;
-              filteredStripDigis->insertDigi(cscDetId,*digiItr);
+              if (chEffIt != m_CSCEffs.end()) {
+                  std::pair<unsigned int, float> typeEff = chEffIt->second;
+                  if (typeEff.first == EFF_STRIPS && randGen.flat() <= typeEff.second) {
+                      std::cout << "We're keeping this digi" << std::endl;
+                      filteredStripDigis->insertDigi(cscDetId,*digiItr);
+                  } else {
+                      std::cout << "We're !!dropping!! this digi" << std::endl;
+                  }
+              } 
           }
       }
   }
@@ -161,8 +176,8 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
 
       for (CSCWireDigiCollection::DigiRangeIterator j=cscWireDigis->begin(); j!=cscWireDigis->end(); j++) {
           std::vector<CSCWireDigi>::const_iterator digiItr = (*j).second.first;
-          CSCDetId const cscDetId=(*j).first;
-          std::cout<<"Det id: " << cscDetId<<std::endl;
+          // CSCDetId const cscDetId=(*j).first;
+          // std::cout<<"Det id: " << cscDetId<<std::endl;
           std::vector<CSCWireDigi>::const_iterator last = (*j).second.second;
           for( ; digiItr != last; ++digiItr) {
               // std::cout<<"  Wire Digi: " << (*digiItr) <<std::endl;
@@ -172,10 +187,6 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
       }
   }
 
-      //     // auto chEffIt = m_ChEffs.find(chId);
-
-      //     // if (chEffIt != m_ChEffs.end() && randGen.flat() <= chEffIt->second)
-      //     //     filteredDigis->put((*cscLayerIdIt).second,(*cscLayerIdIt).first);
 
 
   event.put(std::move(filteredStripDigis), "MuonCSCStripDigi");
@@ -202,7 +213,7 @@ void
 CSCChamberMasker::beginRun(edm::Run const& run, edm::EventSetup const& iSetup)
 {
 
-  // m_ChEffs.clear();
+  m_CSCEffs.clear();
 
   edm::ESHandle<CSCGeometry> cscGeom;
   iSetup.get<MuonGeometryRecord>().get(cscGeom);
@@ -216,21 +227,19 @@ CSCChamberMasker::beginRun(edm::Run const& run, edm::EventSetup const& iSetup)
   {
 
       CSCDetId  chId    = ch->id();
-      // uint32_t     chRawId = chId.rawId();
+      unsigned int rawId = chId.rawIdMaker(chId.endcap(), chId.station(), chId.ring(), chId.chamber(), 0);
+      float eff = 1.;
+      int type = 0;
+      int i = 0;
+      for ( auto & agingPair : agingObj->m_CSCChambEffs)
+      {
+          if ( agingPair.first != rawId) continue;
 
-      std::cout << " chId: " << chId << " agingObj->m_CSCineff: " << agingObj->m_CSCineff << std::endl;
-
-      // Float_t chamberEff = 1.;
-      // // for ( auto & agingPair : agingObj->m_CSCChambEffs)
-      // for ( auto & agingPair : agingObj->m_CSCineff)
-      // {
-      //     if ( agingPair.first == chRawId)
-      //     {
-      //         chamberEff = agingPair.second;
-      //         break;
-      //     }
-      // }
-      // m_ChEffs[chId] = chamberEff;	 
+          type = agingPair.second.first;
+          eff = agingPair.second.second;
+          m_CSCEffs[chId] = std::make_pair(type, eff);	 
+          break;
+      }
 
   }
 
