@@ -11,7 +11,14 @@ def appendCSCChamberMaskerAtUnpacking(process):
         process.preCSCDigis = process.muonCSCDigis.clone()
         process.muonCSCDigis = CSCChamberMasker.clone()
 
-        process.muonCSCDigis.digiTag = cms.InputTag('preCSCDigis') 
+        # process.muonCSCDigis.digiTag = cms.InputTag('preCSCDigis') 
+
+        process.muonCSCDigis.stripDigiTag = cms.InputTag("preCSCDigis", "MuonCSCStripDigi")
+        process.muonCSCDigis.wireDigiTag = cms.InputTag("preCSCDigis", "MuonCSCWireDigi") 
+        process.muonCSCDigis.comparatorDigiTag = cms.InputTag("preCSCDigis", "MuonCSCComparatorDigi")
+        process.muonCSCDigis.rpcDigiTag = cms.InputTag("preCSCDigis", "MuonCSCRPCDigi") 
+        process.muonCSCDigis.alctDigiTag = cms.InputTag("preCSCDigis", "MuonCSCALCTDigi") 
+        process.muonCSCDigis.clctDigiTag = cms.InputTag("preCSCDigis", "MuonCSCCLCTDigi") 
 
         process.filteredDigiSequence = cms.Sequence(process.preCSCDigis + process.muonCSCDigis)
         process.RawToDigi.replace(process.muonCSCDigis, process.filteredDigiSequence)

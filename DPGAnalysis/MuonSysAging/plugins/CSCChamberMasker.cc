@@ -49,6 +49,10 @@
 #include "DataFormats/CSCDigi/interface/CSCStripDigiCollection.h"
 #include "DataFormats/CSCDigi/interface/CSCWireDigi.h"
 #include "DataFormats/CSCDigi/interface/CSCWireDigiCollection.h"
+#include "DataFormats/CSCDigi/interface/CSCCLCTDigi.h"
+#include "DataFormats/CSCDigi/interface/CSCCLCTDigiCollection.h"
+#include "DataFormats/CSCDigi/interface/CSCALCTDigi.h"
+#include "DataFormats/CSCDigi/interface/CSCALCTDigiCollection.h"
 #include "DataFormats/MuonDetId/interface/CSCDetId.h"
 #include "DataFormats/MuonDetId/interface/CSCIndexer.h"
 
@@ -84,6 +88,8 @@ private:
 
   edm::EDGetTokenT <CSCStripDigiCollection> m_stripDigiToken;
   edm::EDGetTokenT <CSCWireDigiCollection> m_wireDigiToken;
+  edm::EDGetTokenT <CSCCLCTDigiCollection> m_clctDigiToken;
+  edm::EDGetTokenT <CSCALCTDigiCollection> m_alctDigiToken;
   std::map<CSCDetId, std::pair<unsigned int,float> > m_CSCEffs;  
   
 };
@@ -102,12 +108,16 @@ private:
 //
 CSCChamberMasker::CSCChamberMasker(const edm::ParameterSet& iConfig) 
     :
-  m_stripDigiToken(consumes<CSCStripDigiCollection>(iConfig.getParameter<edm::InputTag>("stripDigiTag")) ),
-  m_wireDigiToken(consumes<CSCWireDigiCollection>(iConfig.getParameter<edm::InputTag>("wireDigiTag")) )
+  m_stripDigiToken(consumes<CSCStripDigiCollection>(iConfig.getParameter<edm::InputTag>("stripDigiTag")) )
+  ,m_wireDigiToken(consumes<CSCWireDigiCollection>(iConfig.getParameter<edm::InputTag>("wireDigiTag")) )
+  ,m_clctDigiToken(consumes<CSCCLCTDigiCollection>(iConfig.getParameter<edm::InputTag>("clctDigiTag")) )
+  ,m_alctDigiToken(consumes<CSCALCTDigiCollection>(iConfig.getParameter<edm::InputTag>("alctDigiTag")) )
 {
 
   produces<CSCStripDigiCollection>("MuonCSCStripDigi");
   produces<CSCWireDigiCollection>("MuonCSCWireDigi");
+  produces<CSCCLCTDigiCollection>("MuonCSCCLCTDigi");
+  produces<CSCALCTDigiCollection>("MuonCSCALCTDigi");
 
 }
 
@@ -135,6 +145,8 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
  
   std::unique_ptr<CSCStripDigiCollection> filteredStripDigis(new CSCStripDigiCollection());
   std::unique_ptr<CSCWireDigiCollection> filteredWireDigis(new CSCWireDigiCollection());
+  std::unique_ptr<CSCCLCTDigiCollection> filteredCLCTDigis(new CSCCLCTDigiCollection());
+  std::unique_ptr<CSCALCTDigiCollection> filteredALCTDigis(new CSCALCTDigiCollection());
 
   if(!m_stripDigiToken.isUninitialized())
   {
@@ -143,13 +155,14 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
 
       for (CSCStripDigiCollection::DigiRangeIterator j=cscStripDigis->begin(); j!=cscStripDigis->end(); j++) {
           std::vector<CSCStripDigi>::const_iterator digiItr = (*j).second.first;
+          std::vector<CSCStripDigi>::const_iterator last = (*j).second.second;
+
           CSCDetId const cscDetId=(*j).first;
 
           // Since lookups are chamber-centric, make new DetId with layer=0
           CSCDetId chId = CSCDetId(cscDetId.endcap(), cscDetId.station(), cscDetId.ring(), cscDetId.chamber(), 0);
           std::cout<<"Det id: " << chId<<std::endl;
 
-          std::vector<CSCStripDigi>::const_iterator last = (*j).second.second;
           for( ; digiItr != last; ++digiItr) {
 
               auto chEffIt = m_CSCEffs.find(chId);
@@ -187,10 +200,40 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
       }
   }
 
+  if(!m_clctDigiToken.isUninitialized())
+  {
+      edm::Handle<CSCCLCTDigiCollection> cscCLCTDigis;
+      event.getByToken(m_clctDigiToken, cscCLCTDigis);
+      for (CSCCLCTDigiCollection::DigiRangeIterator j=cscCLCTDigis->begin(); j!=cscCLCTDigis->end(); j++) {
+          std::vector<CSCCLCTDigi>::const_iterator digiItr = (*j).second.first;
+          std::vector<CSCCLCTDigi>::const_iterator last = (*j).second.second;
+          CSCDetId const cscDetId=(*j).first;
+          for( ; digiItr != last; ++digiItr) {
+              filteredCLCTDigis->insertDigi(cscDetId,*digiItr);
+          }
+      }
+  }
+
+  if(!m_alctDigiToken.isUninitialized())
+  {
+      edm::Handle<CSCALCTDigiCollection> cscALCTDigis;
+      event.getByToken(m_alctDigiToken, cscALCTDigis);
+      for (CSCALCTDigiCollection::DigiRangeIterator j=cscALCTDigis->begin(); j!=cscALCTDigis->end(); j++) {
+          std::vector<CSCALCTDigi>::const_iterator digiItr = (*j).second.first;
+          std::vector<CSCALCTDigi>::const_iterator last = (*j).second.second;
+          CSCDetId const cscDetId=(*j).first;
+          for( ; digiItr != last; ++digiItr) {
+              filteredALCTDigis->insertDigi(cscDetId,*digiItr);
+          }
+      }
+  }
+
 
 
   event.put(std::move(filteredStripDigis), "MuonCSCStripDigi");
   event.put(std::move(filteredWireDigis), "MuonCSCWireDigi");
+  event.put(std::move(filteredCLCTDigis), "MuonCSCCLCTDigi");
+  event.put(std::move(filteredALCTDigis), "MuonCSCALCTDigi");
 
 }
 
