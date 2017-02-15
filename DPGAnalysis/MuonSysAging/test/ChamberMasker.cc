@@ -47,6 +47,14 @@ class ChamberMasker : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       virtual void endJob() override;
       std::vector<int> m_maskedRPCIDs;
       std::vector<std::string> m_maskedDTIDs;
+      std::vector<int> m_maskedGE11PlusIDs;
+      std::vector<int> m_maskedGE11MinusIDs;
+      std::vector<int> m_maskedGE21PlusIDs;
+      std::vector<int> m_maskedGE21MinusIDs;
+      std::vector<int> m_maskedME0PlusIDs;
+      std::vector<int> m_maskedME0MinusIDs;
+
+
       double m_ineffCSC;      
 
       // ----------member data ---------------------------
@@ -70,8 +78,40 @@ ChamberMasker::ChamberMasker(const edm::ParameterSet& iConfig)
    for ( auto rpc_ids : iConfig.getParameter<std::vector<int>>("maskedRPCIDs"))
     {
       m_maskedRPCIDs.push_back(rpc_ids);
-      std::cout<<rpc_ids<<std::endl;
     }
+
+    for ( auto ge11plus_ids : iConfig.getParameter<std::vector<int>>("maskedGE11PlusIDs"))
+    {
+      m_maskedGE11PlusIDs.push_back(ge11plus_ids);
+    }
+
+    for ( auto ge11minus_ids : iConfig.getParameter<std::vector<int>>("maskedGE11MinusIDs"))
+    {
+      m_maskedGE11MinusIDs.push_back(ge11minus_ids);
+    }
+
+
+   for ( auto ge21plus_ids : iConfig.getParameter<std::vector<int>>("maskedGE21PlusIDs"))
+    {
+      m_maskedGE21PlusIDs.push_back(ge21plus_ids);
+    }
+
+    for ( auto ge21minus_ids : iConfig.getParameter<std::vector<int>>("maskedGE21MinusIDs"))
+    {
+      m_maskedGE21MinusIDs.push_back(ge21minus_ids);
+    }
+
+
+    for ( auto me0plus_ids : iConfig.getParameter<std::vector<int>>("maskedME0PlusIDs"))
+    {
+      m_maskedME0PlusIDs.push_back(me0plus_ids);
+    }
+
+    for ( auto me0minus_ids : iConfig.getParameter<std::vector<int>>("maskedME0MinusIDs"))
+    {
+      m_maskedME0MinusIDs.push_back(me0minus_ids);
+    }
+
 
     for ( auto regStr : iConfig.getParameter<std::vector<std::string>>("maskedChRegEx") )
     {
@@ -112,6 +152,34 @@ ChamberMasker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
  for(unsigned int i = 0; i < m_maskedDTIDs.size();++i){
  pList->m_DTchambers.push_back(std::string(m_maskedDTIDs.at(i)));
  }
+
+for(unsigned int i = 0; i < m_maskedGE11PlusIDs.size();++i){
+ pList->m_GE11Pluschambers.push_back(m_maskedGE11PlusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedGE11MinusIDs.size();++i){
+ pList->m_GE11Minuschambers.push_back(m_maskedGE11MinusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedGE21PlusIDs.size();++i){
+ pList->m_GE21Pluschambers.push_back(m_maskedGE21PlusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedGE21MinusIDs.size();++i){
+ pList->m_GE21Minuschambers.push_back(m_maskedGE21MinusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedME0PlusIDs.size();++i){
+ pList->m_ME0Pluschambers.push_back(m_maskedME0PlusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedME0MinusIDs.size();++i){
+ pList->m_ME0Minuschambers.push_back(m_maskedME0MinusIDs.at(i));
+ }
+
+
+
+ 
  pList->m_CSCineff = m_ineffCSC; 
  edm::Service<cond::service::PoolDBOutputService> poolDbService;
  if( poolDbService.isAvailable() ) poolDbService->writeOne( pList, poolDbService->currentTime(),"MuonSystemAgingRcd" );

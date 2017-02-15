@@ -18,6 +18,13 @@ class MuonSystemAging {
     std::vector<int>  m_RPCchambers;
     std::vector<std::string>  m_DTchambers;
     double m_CSCineff;
+    std::vector<int>  m_GE11Pluschambers;
+    std::vector<int>  m_GE11Minuschambers; 
+    std::vector<int>  m_GE21Pluschambers;
+    std::vector<int>  m_GE21Minuschambers;
+    std::vector<int>  m_ME0Pluschambers;
+    std::vector<int>  m_ME0Minuschambers;
+
    COND_SERIALIZABLE;
    };
 
