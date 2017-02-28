@@ -148,6 +148,7 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
   std::unique_ptr<CSCCLCTDigiCollection> filteredCLCTDigis(new CSCCLCTDigiCollection());
   std::unique_ptr<CSCALCTDigiCollection> filteredALCTDigis(new CSCALCTDigiCollection());
 
+  // Handle strip digis
   if(!m_stripDigiToken.isUninitialized())
   {
       edm::Handle<CSCStripDigiCollection> cscStripDigis;
@@ -161,27 +162,35 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
 
           // Since lookups are chamber-centric, make new DetId with layer=0
           CSCDetId chId = CSCDetId(cscDetId.endcap(), cscDetId.station(), cscDetId.ring(), cscDetId.chamber(), 0);
-          std::cout<<"Det id: " << chId<<std::endl;
+          // std::cout<<"Det id: " << chId<<std::endl;
 
           for( ; digiItr != last; ++digiItr) {
 
               auto chEffIt = m_CSCEffs.find(chId);
 
-              // std::cout<<"  Strip Digi: " << (*digiItr) <<std::endl;
               if (chEffIt != m_CSCEffs.end()) {
+                  // std::cout<<"  Strip Digi in chamber of interest: " << chId <<std::endl;
                   std::pair<unsigned int, float> typeEff = chEffIt->second;
-                  if (typeEff.first == EFF_STRIPS && randGen.flat() <= typeEff.second) {
-                      std::cout << "We're keeping this digi" << std::endl;
+                  int type = typeEff.first % 10; // second digit gives type of inefficiency
+                  int layer = typeEff.first/10; // first digit gives layer (0 = chamber level)
+                  // std::cout << " type: " << type << " layer: " << layer << std::endl;
+                  bool doRandomize = false;
+                  // if ((type == EFF_STRIPS || type == EFF_CHAMBER) && (layer == 0 || cscDetId.layer() == layer) && randGen.flat() <= typeEff.second) {
+                  if ((type == EFF_STRIPS || type == EFF_CHAMBER) && (layer == 0 || cscDetId.layer() == layer)) doRandomize = true;
+
+                  if (!doRandomize  || (randGen.flat() <= typeEff.second)) {
+                      // std::cout << "We're keeping this strip digi in " << cscDetId << std::endl;
                       filteredStripDigis->insertDigi(cscDetId,*digiItr);
                   } else {
-                      std::cout << "We're !!dropping!! this digi" << std::endl;
+                      // std::cout << "We're !!dropping!! this digi in " << cscDetId << std::endl;
                   }
               } 
           }
       }
   }
 
-  if(!m_stripDigiToken.isUninitialized())
+  // Handle wire digis
+  if(!m_wireDigiToken.isUninitialized())
   {
 
       edm::Handle<CSCWireDigiCollection> cscWireDigis;
@@ -189,17 +198,36 @@ CSCChamberMasker::produce(edm::Event& event, const edm::EventSetup& conditions)
 
       for (CSCWireDigiCollection::DigiRangeIterator j=cscWireDigis->begin(); j!=cscWireDigis->end(); j++) {
           std::vector<CSCWireDigi>::const_iterator digiItr = (*j).second.first;
-          // CSCDetId const cscDetId=(*j).first;
-          // std::cout<<"Det id: " << cscDetId<<std::endl;
           std::vector<CSCWireDigi>::const_iterator last = (*j).second.second;
+
+          CSCDetId const cscDetId=(*j).first;
+
+          CSCDetId chId = CSCDetId(cscDetId.endcap(), cscDetId.station(), cscDetId.ring(), cscDetId.chamber(), 0);
+
           for( ; digiItr != last; ++digiItr) {
-              // std::cout<<"  Wire Digi: " << (*digiItr) <<std::endl;
-              // FIXME, don't write out any wire digis right now to test the masking
-              // filteredWireDigis->insertDigi(cscDetId,*digiItr);
+              auto chEffIt = m_CSCEffs.find(chId);
+              if (chEffIt != m_CSCEffs.end()) {
+                  // std::cout<<"  Wire Digi in chamber of interest: " << chId <<std::endl;
+                  std::pair<unsigned int, float> typeEff = chEffIt->second;
+                  int type = typeEff.first % 10;
+                  int layer = typeEff.first/10;
+                  // std::cout << " type: " << type << " layer: " << layer << std::endl;
+                  bool doRandomize = false;
+                  // if ((type == EFF_WIRES || type == EFF_CHAMBER) && (layer == 0 || cscDetId.layer() == layer) && randGen.flat() <= typeEff.second) {
+                  if ((type == EFF_WIRES || type == EFF_CHAMBER) && (layer == 0 || cscDetId.layer() == layer)) doRandomize = true;
+                  // if ((type == EFF_WIRES || type == EFF_CHAMBER) && (layer == 0 || cscDetId.layer() == layer) && randGen.flat() <= typeEff.second) {
+                  if (!doRandomize  || (randGen.flat() <= typeEff.second)) {
+                      // std::cout << "We're keeping this wire digi in " << cscDetId << std::endl;
+                      filteredWireDigis->insertDigi(cscDetId,*digiItr);
+                  } else {
+                      // std::cout << "We're !!dropping!! this digi in " << cscDetId << std::endl;
+                  }
+              } 
           }
       }
   }
 
+  // Don't touch CLCT or ALCT digis
   if(!m_clctDigiToken.isUninitialized())
   {
       edm::Handle<CSCCLCTDigiCollection> cscCLCTDigis;
@@ -273,7 +301,6 @@ CSCChamberMasker::beginRun(edm::Run const& run, edm::EventSetup const& iSetup)
       unsigned int rawId = chId.rawIdMaker(chId.endcap(), chId.station(), chId.ring(), chId.chamber(), 0);
       float eff = 1.;
       int type = 0;
-      int i = 0;
       for ( auto & agingPair : agingObj->m_CSCChambEffs)
       {
           if ( agingPair.first != rawId) continue;

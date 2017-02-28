@@ -85,7 +85,7 @@ ChamberMasker::ChamberMasker(const edm::ParameterSet& iConfig)
    for ( auto rpc_ids : iConfig.getParameter<std::vector<int>>("maskedRPCIDs"))
     {
       m_maskedRPCIDs.push_back(rpc_ids);
-      std::cout << rpc_ids << std::endl;
+      // std::cout << rpc_ids << std::endl;
     }
 
 }
@@ -166,7 +166,7 @@ ChamberMasker::createCSCAgingMap(edm::ESHandle<CSCGeometry> & cscGeom)
 
         CSCDetId chId = ch->id();
 
-        std::cout << " chId: " << chId << std::endl;
+        // std::cout << " chId: " << chId << std::endl;
 
         std::string chTag = (chId.zendcap() == 1 ? "ME+" : "ME-")
             + std::to_string(chId.station())

@@ -55,14 +55,20 @@ process.mytest = cms.EDAnalyzer("ChamberMasker",
             # Or a RegEx setting efficiency  for all chamber to 10%
             # #"(WH-?\\\d_ST\\\d_SEC\\\\d+):0.1",
 
-            # Set DTs to be fully inefficient
-            "(WH-?\\\d_ST\\\d_SEC\\\\d+):0.0", # FIXME
-
             # # Set 70% type-2 efficiency on ME-1
-            # "(ME[-]1/\\\d/\\\\d+):2,0.7", # FIXME
+            # "(ME[-]1/\\\d/\\\\d+):2,0.7",
 
-            # Set 30% type-1 efficiency on ME- endcap
-            "(ME-\\\d/\\\d/\\\\d+):1,0.3", # FIXME
+            # # Set 30% type-1 efficiency on ME- endcap
+            # "(ME-\\\d/\\\d/\\\\d+):1,0.3",
+
+            # type-xy efficiency: x is layer (0 for chamber), y = 0,1,2 for all digis, strip digis, wire digis
+            # "ME\\\+1/4/10:1,0.0", # Set 0% type-1 efficiency on ME+1/1/10A --> No strip digis
+            "ME\\\+1/1/10:1,0.0", # Set 0% type-1 efficiency on ME+1/1/10B --> No strip digis
+            "ME\\\+1/2/4:0,0.0", # Set 0% type-0 efficiency on ME+1/2/4 --> No digis
+            "ME\\\+1/2/15:2,0.0", # Set 0% type-2 efficiency on ME+1/2/15 --> No wire digis
+            "ME\\\+1/2/26:30,0.0", # Set 0% type-31 efficiency on ME+1/2/26 --> No digis on layer 3
+            "ME\\\-1/2/7:31,0.0", # Set 0% type-31 efficiency on ME-1/2/7 --> No strip digis on layer 3
+            "ME\\\-1/2/18:32,0.5", # Set 50% type-32 efficiency on ME-1/2/18 --> 50% wire digis on layer 3
 
             ])
                                 
