@@ -152,6 +152,10 @@ appendChamberMaskerAtUnpacking(process,True,True,[
 from DPGAnalysis.MuonSysAging.RPCChamberMasker_cff import *
 appendRPCChamberMaskerAtUnpacking2(process,True,[637570221,637645128])
 
+# GEM aging
+
+from DPGAnalysis.MuonSysAging.GEMChamberMasker_cff import *
+appendGEMChamberMaskerAtUnpacking2(process,True,[671170818,671173120,671173378,671174146,671178752,671236354,671236866,671566080])
 reRunDttf( process )
 
 ####################################

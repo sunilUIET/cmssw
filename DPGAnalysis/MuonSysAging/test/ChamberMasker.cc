@@ -207,8 +207,7 @@ for(unsigned int i = 0; i < m_maskedME0MinusIDs.size();++i){
 
 
 
-   pList->m_CSCChambEffs = m_CSCChambEffs;
- 
+ pList->m_CSCChambEffs = m_CSCChambEffs;
  pList->m_CSCineff = m_ineffCSC; 
  edm::Service<cond::service::PoolDBOutputService> poolDbService;
  if( poolDbService.isAvailable() ) poolDbService->writeOne( pList, poolDbService->currentTime(),"MuonSystemAgingRcd" );
