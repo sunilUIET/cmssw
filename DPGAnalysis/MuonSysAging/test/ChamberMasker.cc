@@ -36,34 +36,43 @@
 // class declaration
 //
 
-class ChamberMasker : public edm::one::EDAnalyzer<edm::one::WatchRuns>  
-{
+// If the analyzer does not use TFileService, please remove
+// the template argument to the base class so the class inherits
+// from  edm::one::EDAnalyzer<> and also remove the line from
+// constructor "usesResource("TFileService");"
+// This will improve performance in multithreaded jobs.
 
-public:
-  explicit ChamberMasker(const edm::ParameterSet&);
-  ~ChamberMasker();
-  
-  static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-  
-  
-private:
-  
-  virtual void beginJob() override;
-  virtual void beginRun(const edm::Run&, const edm::EventSetup&) override;
-  virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
-  virtual void endRun(const edm::Run&, const edm::EventSetup&) override { };
-  virtual void endJob() override;
-  
-  void createDtAgingMap(edm::ESHandle<DTGeometry> & dtGeom);
-  void createCSCAgingMap(edm::ESHandle<CSCGeometry> & cscGeom);
-  
-  std::vector<int> m_maskedRPCIDs;
-  std::vector<std::string> m_ChamberRegEx;
-  std::map<uint32_t, float> m_DTChambEffs;
-  std::map<uint32_t, std::pair<unsigned int, float>> m_CSCChambEffs;
-  double m_ineffCSC;      
-  
-  // ----------member data ---------------------------
+class ChamberMasker : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+   public:
+      explicit ChamberMasker(const edm::ParameterSet&);
+      ~ChamberMasker();
+
+      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+
+
+   private:
+      virtual void beginJob() override;
+      virtual void beginRun(const edm::Run&, const edm::EventSetup&) override;
+      virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
+      virtual void endRun(const edm::Run&, const edm::EventSetup&) override { };
+      virtual void endJob() override;
+      std::vector<int> m_maskedRPCIDs;
+      std::vector<std::string> m_maskedDTIDs;
+      std::vector<int> m_maskedGE11PlusIDs;
+      std::vector<int> m_maskedGE11MinusIDs;
+      std::vector<int> m_maskedGE21PlusIDs;
+      std::vector<int> m_maskedGE21MinusIDs;
+      std::vector<int> m_maskedME0PlusIDs;
+      std::vector<int> m_maskedME0MinusIDs;
+      
+      void createCSCAgingMap(edm::ESHandle<CSCGeometry> & cscGeom);
+      std::vector<std::string> m_ChamberRegEx;
+      std::map<uint32_t, std::pair<unsigned int, float>> m_CSCChambEffs;
+
+
+      double m_ineffCSC;      
+
+      // ----------member data ---------------------------
 };
 
 //
@@ -80,13 +89,55 @@ private:
 ChamberMasker::ChamberMasker(const edm::ParameterSet& iConfig)
 
 {  
-   m_ineffCSC     = iConfig.getParameter<double>("CSCineff"); 
+   m_ineffCSC = iConfig.getParameter<double>("CSCineff"); 
    m_ChamberRegEx = iConfig.getParameter<std::vector<std::string>>("chamberRegEx"); 
    for ( auto rpc_ids : iConfig.getParameter<std::vector<int>>("maskedRPCIDs"))
     {
       m_maskedRPCIDs.push_back(rpc_ids);
-      // std::cout << rpc_ids << std::endl;
     }
+
+    for ( auto ge11plus_ids : iConfig.getParameter<std::vector<int>>("maskedGE11PlusIDs"))
+    {
+      m_maskedGE11PlusIDs.push_back(ge11plus_ids);
+    }
+
+    for ( auto ge11minus_ids : iConfig.getParameter<std::vector<int>>("maskedGE11MinusIDs"))
+    {
+      m_maskedGE11MinusIDs.push_back(ge11minus_ids);
+    }
+
+
+   for ( auto ge21plus_ids : iConfig.getParameter<std::vector<int>>("maskedGE21PlusIDs"))
+    {
+      m_maskedGE21PlusIDs.push_back(ge21plus_ids);
+    }
+
+    for ( auto ge21minus_ids : iConfig.getParameter<std::vector<int>>("maskedGE21MinusIDs"))
+    {
+      m_maskedGE21MinusIDs.push_back(ge21minus_ids);
+    }
+
+
+    for ( auto me0plus_ids : iConfig.getParameter<std::vector<int>>("maskedME0PlusIDs"))
+    {
+      m_maskedME0PlusIDs.push_back(me0plus_ids);
+    }
+
+    for ( auto me0minus_ids : iConfig.getParameter<std::vector<int>>("maskedME0MinusIDs"))
+    {
+      m_maskedME0MinusIDs.push_back(me0minus_ids);
+    }
+
+
+    for ( auto regStr : iConfig.getParameter<std::vector<std::string>>("maskedChRegEx") )
+    {
+    m_maskedDTIDs.push_back(regStr);
+
+    }
+
+
+   //now do what ever initialization is needed
+   usesResource("TFileService");
 
 }
 
@@ -99,27 +150,10 @@ ChamberMasker::~ChamberMasker()
 
 }
 
-
-//
-// member functions
-//
-
-
-// ------------ method called once each job just before starting event loop  ------------
-void 
-ChamberMasker::beginJob()
-{
-}
-
 // ------------ method called at the beginning of each run ------------
 void
 ChamberMasker::beginRun(const edm::Run& iRun, const edm::EventSetup& iSetup)
 {
-
-  edm::ESHandle<DTGeometry> dtGeom;
-  iSetup.get<MuonGeometryRecord>().get(dtGeom);
-
-  createDtAgingMap(dtGeom);
 
   edm::ESHandle<CSCGeometry> cscGeom;
   iSetup.get<MuonGeometryRecord>().get(cscGeom);
@@ -128,24 +162,64 @@ ChamberMasker::beginRun(const edm::Run& iRun, const edm::EventSetup& iSetup)
   
 }
 
+
+//
+// member functions
+//
+
 // ------------ method called for each event  ------------
 void
 ChamberMasker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
 
-   MuonSystemAging* muonSystAging = new MuonSystemAging();
-   for(unsigned int i = 0; i < m_maskedRPCIDs.size();++i){
-     muonSystAging->m_RPCchambers.push_back(m_maskedRPCIDs.at(i));
-   }
+ MuonSystemAging* pList = new MuonSystemAging();
+ for(unsigned int i = 0; i < m_maskedRPCIDs.size();++i){
+ pList->m_RPCchambers.push_back(m_maskedRPCIDs.at(i));
+ }
+ for(unsigned int i = 0; i < m_maskedDTIDs.size();++i){
+ pList->m_DTchambers.push_back(std::string(m_maskedDTIDs.at(i)));
+ }
 
-   muonSystAging->m_DTChambEffs = m_DTChambEffs;
-   muonSystAging->m_CSCChambEffs = m_CSCChambEffs;
+for(unsigned int i = 0; i < m_maskedGE11PlusIDs.size();++i){
+ pList->m_GE11Pluschambers.push_back(m_maskedGE11PlusIDs.at(i));
+ }
 
-   muonSystAging->m_CSCineff = m_ineffCSC; 
-   edm::Service<cond::service::PoolDBOutputService> poolDbService;
-   if( poolDbService.isAvailable() ) poolDbService->writeOne( muonSystAging, poolDbService->currentTime(),"MuonSystemAgingRcd" );
-   
+for(unsigned int i = 0; i < m_maskedGE11MinusIDs.size();++i){
+ pList->m_GE11Minuschambers.push_back(m_maskedGE11MinusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedGE21PlusIDs.size();++i){
+ pList->m_GE21Pluschambers.push_back(m_maskedGE21PlusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedGE21MinusIDs.size();++i){
+ pList->m_GE21Minuschambers.push_back(m_maskedGE21MinusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedME0PlusIDs.size();++i){
+ pList->m_ME0Pluschambers.push_back(m_maskedME0PlusIDs.at(i));
+ }
+
+for(unsigned int i = 0; i < m_maskedME0MinusIDs.size();++i){
+ pList->m_ME0Minuschambers.push_back(m_maskedME0MinusIDs.at(i));
+ }
+
+
+
+   pList->m_CSCChambEffs = m_CSCChambEffs;
+ 
+ pList->m_CSCineff = m_ineffCSC; 
+ edm::Service<cond::service::PoolDBOutputService> poolDbService;
+ if( poolDbService.isAvailable() ) poolDbService->writeOne( pList, poolDbService->currentTime(),"MuonSystemAgingRcd" );
+
+}
+
+
+// ------------ method called once each job just before starting event loop  ------------
+void 
+ChamberMasker::beginJob()
+{
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
@@ -203,52 +277,6 @@ ChamberMasker::createCSCAgingMap(edm::ESHandle<CSCGeometry> & cscGeom)
 
     }
 
-}
-
-void
-ChamberMasker::createDtAgingMap(edm::ESHandle<DTGeometry> & dtGeom)
-{
-
-  const std::vector<const DTChamber*> chambers = dtGeom->chambers();
-
-  std::cout << chambers.size() << std::endl;
-
-  for ( const DTChamber *ch : chambers)
-   {
-
-     DTChamberId chId = ch->id();
-
-     std::string chTag = "WH" + std::to_string(chId.wheel())
-                       + "_ST" + std::to_string(chId.station())
-                       + "_SEC" + std::to_string(chId.sector());
-
-     float eff = 1.;
-
-     for (auto & chRegExStr : m_ChamberRegEx)
-       {
-
-	 std::string effTag(chRegExStr.substr(chRegExStr.find(":")));
-
-	 const std::regex chRegEx(chRegExStr.substr(0,chRegExStr.find(":")));
-	 const std::regex effRegEx("(\\d*\\.\\d*)");
-
-	 std::smatch effMatch;
-
-	 if ( std::regex_search(chTag, chRegEx) &&
-	      std::regex_search(effTag, effMatch, effRegEx))
-	   {
-	     std::string effStr = effMatch.str();
-	     eff = std::atof(effStr.c_str());
-
-	   }
-
-       } 
-
-     m_DTChambEffs[chId.rawId()] = eff;
-
-         
-   }
-  
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
