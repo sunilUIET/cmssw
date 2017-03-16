@@ -11,16 +11,25 @@
 
 // system include files
 #include <memory>
+#include <regex>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
 
+#include "FWCore/Framework/interface/Run.h"
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+#include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/IOVSyncValue.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+
+#include "Geometry/Records/interface/MuonGeometryRecord.h"
+#include "Geometry/DTGeometry/interface/DTGeometry.h"
+#include "Geometry/CSCGeometry/interface/CSCGeometry.h"
+
 #include "CondFormats/MuonSystemAging/interface/MuonSystemAging.h"
 #include "CondCore/DBOutputService/interface/PoolDBOutputService.h"
 //
@@ -43,7 +52,9 @@ class ChamberMasker : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 
    private:
       virtual void beginJob() override;
+      virtual void beginRun(const edm::Run&, const edm::EventSetup&) override;
       virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
+      virtual void endRun(const edm::Run&, const edm::EventSetup&) override { };
       virtual void endJob() override;
       std::vector<int> m_maskedRPCIDs;
       std::vector<std::string> m_maskedDTIDs;
@@ -53,6 +64,10 @@ class ChamberMasker : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       std::vector<int> m_maskedGE21MinusIDs;
       std::vector<int> m_maskedME0PlusIDs;
       std::vector<int> m_maskedME0MinusIDs;
+      
+      void createCSCAgingMap(edm::ESHandle<CSCGeometry> & cscGeom);
+      std::vector<std::string> m_ChamberRegEx;
+      std::map<uint32_t, std::pair<unsigned int, float>> m_CSCChambEffs;
 
 
       double m_ineffCSC;      
@@ -75,6 +90,7 @@ ChamberMasker::ChamberMasker(const edm::ParameterSet& iConfig)
 
 {  
    m_ineffCSC = iConfig.getParameter<double>("CSCineff"); 
+   m_ChamberRegEx = iConfig.getParameter<std::vector<std::string>>("chamberRegEx"); 
    for ( auto rpc_ids : iConfig.getParameter<std::vector<int>>("maskedRPCIDs"))
     {
       m_maskedRPCIDs.push_back(rpc_ids);
@@ -134,6 +150,18 @@ ChamberMasker::~ChamberMasker()
 
 }
 
+// ------------ method called at the beginning of each run ------------
+void
+ChamberMasker::beginRun(const edm::Run& iRun, const edm::EventSetup& iSetup)
+{
+
+  edm::ESHandle<CSCGeometry> cscGeom;
+  iSetup.get<MuonGeometryRecord>().get(cscGeom);
+
+  createCSCAgingMap(cscGeom);
+  
+}
+
 
 //
 // member functions
@@ -179,7 +207,7 @@ for(unsigned int i = 0; i < m_maskedME0MinusIDs.size();++i){
 
 
 
- 
+ pList->m_CSCChambEffs = m_CSCChambEffs;
  pList->m_CSCineff = m_ineffCSC; 
  edm::Service<cond::service::PoolDBOutputService> poolDbService;
  if( poolDbService.isAvailable() ) poolDbService->writeOne( pList, poolDbService->currentTime(),"MuonSystemAgingRcd" );
@@ -197,6 +225,57 @@ ChamberMasker::beginJob()
 void 
 ChamberMasker::endJob() 
 {
+}
+
+void
+ChamberMasker::createCSCAgingMap(edm::ESHandle<CSCGeometry> & cscGeom)
+{
+
+    const auto chambers = cscGeom->chambers();
+
+    std::cout << chambers.size() << std::endl;
+
+    for ( const auto *ch : chambers) {
+
+        CSCDetId chId = ch->id();
+
+        // std::cout << " chId: " << chId << std::endl;
+
+        std::string chTag = (chId.zendcap() == 1 ? "ME+" : "ME-")
+            + std::to_string(chId.station())
+            + "/" + std::to_string(chId.ring())
+            + "/" + std::to_string(chId.chamber());
+
+        int type = 0;
+        float eff = 1.;
+
+        for (auto & chRegExStr : m_ChamberRegEx) {
+
+            std::string effTag(chRegExStr.substr(chRegExStr.find(":")));
+
+            const std::regex chRegEx(chRegExStr.substr(0,chRegExStr.find(":")));
+            const std::regex predicateRegEx("(\\d*,\\d*\\.\\d*)");
+
+            std::smatch predicate;
+
+            if ( std::regex_search(chTag, chRegEx) && std::regex_search(effTag, predicate, predicateRegEx)) {
+                std::string predicateStr = predicate.str();
+                std::string typeStr = predicateStr.substr(0,predicateStr.find(","));
+                std::string effStr = predicateStr.substr(predicateStr.find(",")+1);
+                type = std::atoi(typeStr.c_str());
+                eff = std::atof(effStr.c_str());
+
+                std::cout << "Setting chamber " << chTag << " to have inefficiency of " << eff << ", type " << type << std::endl;
+            }
+
+        } 
+
+        // Note, layer 0 for chamber specification
+        int rawId = chId.rawIdMaker(chId.endcap(), chId.station(), chId.ring(), chId.chamber(), 0);
+        m_CSCChambEffs[rawId] = std::make_pair(type, eff);
+
+    }
+
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
