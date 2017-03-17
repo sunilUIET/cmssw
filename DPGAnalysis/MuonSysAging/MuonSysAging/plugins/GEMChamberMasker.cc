@@ -107,7 +107,6 @@ GEMChamberMasker::~GEMChamberMasker()
 void
 GEMChamberMasker::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
- // std::cout<<"***********new event*************"<<std::endl;
   using namespace edm;
   std::unique_ptr<GEMDigiCollection> filteredDigis(new GEMDigiCollection());
   if (!digiTag_.label().empty())
@@ -120,11 +119,10 @@ GEMChamberMasker::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
       
       for (; gemLayerIdIt != gemLayerIdEnd; ++gemLayerIdIt)
 	  {
-          //GEMDetId chambid = ((*gemLayerIdIt).first).chamberId();
-          int id = ((*gemLayerIdIt).first).chamberId().rawId();
-   //       std::cout<<"GEM det ID = "<<id<<std::endl; 
+          int id = ((*gemLayerIdIt).first).rawId();
+          std::cout<<"GEM det ID = "<<id<<std::endl; 
           if(std::find(m_maskedGEMIDs.begin(),m_maskedGEMIDs.end(),id) == m_maskedGEMIDs.end()){
-     //         std::cout<<"Selected GEM det ID = "<<id<<std::endl;
+              std::cout<<"Selected GEM det ID = "<<id<<std::endl;
               filteredDigis->put((*gemLayerIdIt).second,(*gemLayerIdIt).first);
           }
       }
@@ -174,7 +172,7 @@ GEMChamberMasker::beginRun(edm::Run const& run, edm::EventSetup const& iSetup)
   mcV = myMC->m_GE21Pluschambers;
   for(unsigned int i = 0; i < mcV.size();++i)m_maskedGEMIDs.push_back(mcV.at(i));
   }
- for(unsigned int i = 0; i < m_maskedGEMIDs.size();++i)std::cout<<"chamber to be masked = "<<m_maskedGEMIDs.at(i)<<std::endl;
+
 }
 
  
